@@ -58,7 +58,52 @@ public class Marker {
      * Example: a = "ACGTAC", b = "TTACGT", k = 4: the words of a are ACGT, CGTA, GTAC; only ACGT is in b, so the answer is 1.
      */
     public static int sharedWords(String a, String b, int k) {
-        // TODO Mission 4
-        return -1;
+        if (k <= 0) throw new IllegalArgumentException("k must be positive");
+        if (a.length() < k || b.length() < k) return 0;
+        long power = 1;
+        for (int i = 1; i < k; i++) power = power * BASE % MOD;
+
+        // Keep all candidate positions: different words can share a hash.
+        Map<Long, List<Integer>> positions = new HashMap<>();
+        long hash = firstHash(b, k);
+        for (int i = 0; i <= b.length() - k; i++) {
+            positions.computeIfAbsent(hash, unused -> new ArrayList<>()).add(i);
+            if (i < b.length() - k) hash = slide(hash, b.charAt(i), b.charAt(i + k), power);
+        }
+        int count = 0;
+        hash = firstHash(a, k);
+        for (int i = 0; i <= a.length() - k; i++) {
+            List<Integer> candidates = positions.get(hash);
+            if (candidates != null) {
+                for (int start : candidates) {
+                    if (sameWord(a, i, b, start, k)) {
+                        count++;
+                        break; // Count this position in A once, even if B has duplicates.
+                    }
+                }
+            }
+            if (i < a.length() - k) hash = slide(hash, a.charAt(i), a.charAt(i + k), power);
+        }
+        return count;
+    }
+    private static final long BASE = 257;
+    private static final long MOD = 1_000_000_007;
+
+    private static long firstHash(String s, int k) {
+        long hash = 0;
+        for (int i = 0; i < k; i++) hash = (hash * BASE + s.charAt(i)) % MOD;
+        return hash;
+    }
+
+    private static long slide(long hash, char outgoing, char incoming, long power) {
+        long rest = (hash - outgoing * power % MOD + MOD) % MOD;
+        return (rest * BASE + incoming) % MOD;
+    }
+
+    private static boolean sameWord(String a, int i, String b, int j, int k) {
+        for (int offset = 0; offset < k; offset++) {
+            if (a.charAt(i + offset) != b.charAt(j + offset)) return false;
+        }
+        return true;
     }
 }
